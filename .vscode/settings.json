@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.toml": "ini"
+    },
+    "cSpell.enableFiletypes": [
+        "!rust"
+    ]
+}
