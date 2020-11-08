@@ -152,4 +152,22 @@ impl SetupInstance {
 
         bstr.to_string()
     }
+
+    pub fn display_name(&self, lcid: u32) -> String {
+        let mut bstr = BStr::new();
+        unsafe {
+            self.instance.GetDisplayName(lcid, &mut (*bstr));
+        }
+
+        bstr.to_string()
+    }
+
+    pub fn description(&self, lcid: u32) -> String {
+        let mut bstr = BStr::new();
+        unsafe {
+            self.instance.GetDescription(lcid, &mut (*bstr));
+        }
+
+        bstr.to_string()
+    }
 }

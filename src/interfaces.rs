@@ -36,8 +36,8 @@ interfaces! {
         pub fn GetInstallationName(&self, pbstrInstallationName: *mut BSTR) -> HRESULT;
         pub fn GetInstallationPath(&self, pbstrInstallationPath: *mut BSTR) -> HRESULT;
         pub fn GetInstallationVersion(&self, pbstrInstallationVersion: *mut BSTR) -> HRESULT;
-        fn GetDisplayName(&self, lcid: LCID, pbstrDisplayName: *mut BSTR) -> HRESULT;
-        fn GetDescription(&self, lcid: LCID, pbstrDescription: *mut BSTR) -> HRESULT;
+        pub fn GetDisplayName(&self, lcid: LCID, pbstrDisplayName: *mut BSTR) -> HRESULT;
+        pub fn GetDescription(&self, lcid: LCID, pbstrDescription: *mut BSTR) -> HRESULT;
         fn ResolvePath(&self, pwszRelativePath: LPCOLESTR, pbstrAbsolutePath: *mut BSTR) -> HRESULT;
     }
 
