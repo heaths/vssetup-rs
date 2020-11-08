@@ -30,7 +30,7 @@ pub struct SetupConfiguration {
 }
 
 impl SetupConfiguration {
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     pub fn new() -> Self {
         let config = match create_instance::<ISetupConfiguration>(&CLSID_SetupConfiguration) {
             Ok(c) => Some(c),
@@ -43,7 +43,7 @@ impl SetupConfiguration {
         }
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(windows))]
     pub fn new() -> Self {
         SetupConfiguration {
             config: None,
