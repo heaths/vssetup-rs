@@ -20,4 +20,4 @@ keywords = [
 
 [target.'cfg(windows)'.dependencies]
 com = "^0.3.0"
-winapi = { "version" = "^0.3.9", features = [ "oaidl", "wtypes", "winnt" ] }
+winapi = { "version" = "^0.3.9", features = [ "oaidl", "oleauto", "winnt", "wtypes" ] }
