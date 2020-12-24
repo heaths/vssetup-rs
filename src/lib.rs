@@ -4,8 +4,8 @@
 extern crate com;
 extern crate winapi;
 
-mod bstr;
-use bstr::BStr;
+mod bstring;
+use bstring::BString;
 
 use com::runtime::create_instance;
 use com::sys::{
@@ -118,7 +118,7 @@ pub struct SetupInstance {
 
 impl SetupInstance {
     pub fn instance_id(&self) -> String {
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         unsafe {
             self.instance.GetInstanceId(&mut (*bstr));
         }
@@ -127,7 +127,7 @@ impl SetupInstance {
     }
 
     pub fn installation_name(&self) -> String {
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         unsafe {
             self.instance.GetInstallationName(&mut (*bstr));
         }
@@ -136,7 +136,7 @@ impl SetupInstance {
     }
 
     pub fn installation_path(&self) -> String {
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         unsafe {
             self.instance.GetInstallationPath(&mut (*bstr));
         }
@@ -145,7 +145,7 @@ impl SetupInstance {
     }
 
     pub fn installation_version(&self) -> String {
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         unsafe {
             self.instance.GetInstallationVersion(&mut (*bstr));
         }
@@ -154,7 +154,7 @@ impl SetupInstance {
     }
 
     pub fn display_name(&self, lcid: u32) -> String {
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         unsafe {
             self.instance.GetDisplayName(lcid, &mut (*bstr));
         }
@@ -163,7 +163,7 @@ impl SetupInstance {
     }
 
     pub fn description(&self, lcid: u32) -> String {
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         unsafe {
             self.instance.GetDescription(lcid, &mut (*bstr));
         }

@@ -12,31 +12,57 @@ use std::{
 
 use winapi::{
     um::oleauto::{
+        SysAllocString,
         SysFreeString,
         SysStringLen,
     },
     shared::wtypes::BSTR,
 };
 
-pub struct BStr {
+pub struct BString {
     s: BSTR,
 }
 
-impl BStr {
-    pub fn new() -> BStr {
-        BStr {
+impl BString {
+    pub fn new() -> BString {
+        BString {
             s: ptr::null_mut(),
         }
     }
 
     pub fn len(&self) -> u32 {
         unsafe {
+            // returns 0 if null.
             SysStringLen(self.s)
+        }
+    }
+
+    fn free(&mut self) {
+        if !self.s.is_null() {
+            unsafe {
+                SysFreeString(self.s);
+            }
+
+            self.s = ptr::null_mut();
         }
     }
 }
 
-impl fmt::Display for BStr {
+impl Clone for BString {
+    fn clone(&self) -> BString {
+        BString {
+            s: unsafe { SysAllocString(self.s) },
+        }
+    }
+}
+
+impl Default for BString {
+    fn default() -> BString {
+        BString::new()
+    }
+}
+
+impl fmt::Display for BString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = unsafe {
             from_raw_parts(self.s, self.len() as usize)
@@ -49,7 +75,7 @@ impl fmt::Display for BStr {
     }
 }
 
-impl ops::Deref for BStr {
+impl ops::Deref for BString {
     type Target = BSTR;
 
     fn deref(&self) -> &Self::Target {
@@ -57,17 +83,18 @@ impl ops::Deref for BStr {
     }
 }
 
-impl ops::DerefMut for BStr {
+impl ops::DerefMut for BString {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // free the current string since we'll get another.
+        self.free();
+
         &mut self.s
     }
 }
 
-impl Drop for BStr {
+impl Drop for BString {
     fn drop(&mut self) {
-        unsafe {
-            SysFreeString(self.s);
-        }
+        self.free();
     }
 }
 
@@ -78,7 +105,15 @@ mod tests {
 
     #[test]
     fn inits_empty() {
-        let bstr = BStr::new();
+        let bstr = BString::new();
+
+        assert_eq!(bstr.len(), 0);
+        assert_eq!(bstr.to_string(), "");
+    }
+
+    #[test]
+    fn default_empty() {
+        let bstr: BString = Default::default();
 
         assert_eq!(bstr.len(), 0);
         assert_eq!(bstr.to_string(), "");
@@ -88,7 +123,7 @@ mod tests {
     fn formats() {
         let buf: Vec<u16> = "hello".encode_utf16().collect();
         let bstr = unsafe {
-            BStr {
+            BString {
                 s: SysAllocStringLen(buf.as_ptr(), buf.len() as u32),
             }
         };
@@ -106,10 +141,18 @@ mod tests {
             }
         }
 
-        let mut bstr = BStr::new();
+        let mut bstr = BString::new();
         f(&mut bstr as &mut BSTR);
 
         assert_eq!(bstr.len(), 5);
         assert_eq!(bstr.to_string(), "hello");
+    }
+
+    #[test]
+    fn no_double_drop() {
+        let mut bstr = BString::new();
+        bstr.free();
+
+        drop(bstr);
     }
 }
