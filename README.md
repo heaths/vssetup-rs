@@ -14,4 +14,4 @@ Coming soon...
 
 * **Is this project supported by Microsoft?**
 
-  While I am the developer who wrote the Setup Configuration API while working for Microsoft, this crate is unsupported by Microsoft.
+  Though I am the developer who wrote the Setup Configuration API while working for Microsoft, this crate is unsupported by Microsoft.
