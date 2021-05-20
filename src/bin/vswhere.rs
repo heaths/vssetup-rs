@@ -8,10 +8,10 @@ use vssetup::SetupConfiguration;
 
 use bindings::Windows::Win32::Globalization::GetUserDefaultLCID;
 use chrono::Local;
-use com::runtime::init_runtime;
+use windows::{initialize_sta, Result};
 
-fn main() -> windows::Result<()> {
-    init_runtime().expect("Failed to initialize COM");
+fn main() -> Result<()> {
+    initialize_sta()?;
 
     let lcid = unsafe {
         GetUserDefaultLCID()
