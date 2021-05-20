@@ -10,7 +10,7 @@ use bindings::Windows::Win32::Globalization::GetUserDefaultLCID;
 use chrono::Local;
 use com::runtime::init_runtime;
 
-fn main() -> Result<(), windows::Error> {
+fn main() -> windows::Result<()> {
     init_runtime().expect("Failed to initialize COM");
 
     let lcid = unsafe {

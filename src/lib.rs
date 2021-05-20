@@ -21,7 +21,7 @@ use com::runtime::create_instance;
 mod interfaces;
 use interfaces::*;
 
-use windows::{Error, HRESULT};
+use windows::{Error, HRESULT, Result};
 
 const CO_E_DLLNOTFOUND: i32 = -0x7ffb_fe08; // 0x8004_01F8
 const REGDB_E_CLASSNOTREG: i32 = -0x7ffb_feac; // 0x8004_0154
@@ -118,7 +118,7 @@ pub struct SetupInstance {
 }
 
 impl SetupInstance {
-    pub fn instance_id(&self) -> Result<String, Error> {
+    pub fn instance_id(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
             if let Err(e) = self.instance.GetInstanceId(&mut bstr).ok() {
@@ -129,7 +129,7 @@ impl SetupInstance {
         Ok(bstr.to_string())
     }
 
-    pub fn install_date(&self) -> Result<DateTime<Utc>, Error> {
+    pub fn install_date(&self) -> Result<DateTime<Utc>> {
         let mut ft = FILETIME::default();
         let mut st = SYSTEMTIME::default();
         unsafe {
@@ -156,7 +156,7 @@ impl SetupInstance {
         Ok(dt)
     }
 
-    pub fn installation_name(&self) -> Result<String, Error> {
+    pub fn installation_name(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
             if let Err(e) = self.instance.GetInstallationName(&mut bstr).ok() {
@@ -167,7 +167,7 @@ impl SetupInstance {
         Ok(bstr.to_string())
     }
 
-    pub fn installation_path(&self) -> Result<String, Error> {
+    pub fn installation_path(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
             if let Err(e) = self.instance.GetInstallationPath(&mut bstr).ok() {
@@ -178,7 +178,7 @@ impl SetupInstance {
         Ok(bstr.to_string())
     }
 
-    pub fn installation_version(&self) -> Result<String, Error> {
+    pub fn installation_version(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
             if let Err(e) = self.instance.GetInstallationVersion(&mut bstr).ok() {
@@ -189,7 +189,7 @@ impl SetupInstance {
         Ok(bstr.to_string())
     }
 
-    pub fn display_name(&self, lcid: u32) -> Result<String, Error> {
+    pub fn display_name(&self, lcid: u32) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
             if let Err(e) = self.instance.GetDisplayName(lcid, &mut bstr).ok() {
@@ -200,7 +200,7 @@ impl SetupInstance {
         Ok(bstr.to_string())
     }
 
-    pub fn description(&self, lcid: u32) -> Result<String, Error> {
+    pub fn description(&self, lcid: u32) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
             if let Err(e) = self.instance.GetDescription(lcid, &mut bstr).ok() {
