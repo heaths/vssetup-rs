@@ -1,4 +1,4 @@
-/target
+target/
 
 # Unignore if building a bin.
 Cargo.lock

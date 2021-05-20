@@ -6,10 +6,11 @@
 extern crate vssetup;
 use vssetup::SetupConfiguration;
 
+use bindings::Windows::Win32::Globalization::GetUserDefaultLCID;
+use chrono::Local;
 use com::runtime::init_runtime;
-use winapi::um::winnls::GetUserDefaultLCID;
 
-fn main() {
+fn main() -> Result<(), windows::Error> {
     init_runtime().expect("Failed to initialize COM");
 
     let lcid = unsafe {
@@ -24,14 +25,17 @@ fn main() {
                 println!();
             }
 
-            println!("instanceId: {}", instance.instance_id());
-            println!("installationName: {}", instance.installation_name());
-            println!("installationPath: {}", instance.installation_path());
-            println!("installationVersion: {}", instance.installation_version());
-            println!("displayName: {}", instance.display_name(lcid));
-            println!("description: {}", instance.description(lcid));
+            println!("instanceId: {}", instance.instance_id()?);
+            println!("installDate: {}", instance.install_date()?.with_timezone(&Local));
+            println!("installationName: {}", instance.installation_name()?);
+            println!("installationPath: {}", instance.installation_path()?);
+            println!("installationVersion: {}", instance.installation_version()?);
+            println!("displayName: {}", instance.display_name(lcid)?);
+            println!("description: {}", instance.description(lcid)?);
 
             first = false;
         }
     }
+
+    Ok(())
 }

@@ -2,28 +2,29 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 extern crate com;
-extern crate winapi;
 
-mod bstring;
-use bstring::BString;
-
-use com::runtime::create_instance;
-use com::sys::{
-    FAILED,
-    HRESULT,
+use bindings::{
+    Windows::Win32::System::{
+        Diagnostics::Debug::GetLastError,
+        OleAutomation::BSTR,
+        WindowsProgramming::{
+            FILETIME,
+            SYSTEMTIME,
+            FileTimeToSystemTime,
+        },
+    },
 };
+
+use chrono::{DateTime, TimeZone, Utc};
+use com::runtime::create_instance;
 
 mod interfaces;
-use interfaces::{
-    CLSID_SetupConfiguration,
-    IEnumSetupInstances,
-    ISetupConfiguration,
-    ISetupConfiguration2,
-    ISetupInstance,
-};
+use interfaces::*;
 
-const CO_E_DLLNOTFOUND: HRESULT = -0x7ffb_fe08;
-const REGDB_E_CLASSNOTREG: HRESULT = -0x7ffb_feac;
+use windows::{Error, HRESULT};
+
+const CO_E_DLLNOTFOUND: i32 = -0x7ffb_fe08; // 0x8004_01F8
+const REGDB_E_CLASSNOTREG: i32 = -0x7ffb_feac; // 0x8004_0154
 
 pub struct SetupConfiguration {
     config: Option<ISetupConfiguration>,
@@ -59,7 +60,7 @@ impl SetupConfiguration {
             .query_interface::<ISetupConfiguration2>() {
                 let mut e = None;
                 unsafe {
-                    if FAILED(config2.EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)) {
+                    if config2.EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances).is_err() {
                         return None;
                     }
 
@@ -74,7 +75,7 @@ impl SetupConfiguration {
         let config = self.config.as_ref().unwrap();
         let mut e = None;
         unsafe {
-            if FAILED(config.EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)) {
+            if config.EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances).is_err() {
                 return None;
             }
 
@@ -98,7 +99,7 @@ impl Iterator for SetupInstances {
         let mut instances: [Option<ISetupInstance>; 1] = [None];
         let mut fetched = 0;
         unsafe {
-            if FAILED(self.e.Next(1, instances.as_mut_ptr() as *mut *mut ISetupInstance, &mut fetched)) || fetched == 0 {
+            if self.e.Next(1, instances.as_mut_ptr() as *mut *mut ISetupInstance, &mut fetched).is_err() || fetched == 0 {
                 return None;
             }
 
@@ -117,57 +118,96 @@ pub struct SetupInstance {
 }
 
 impl SetupInstance {
-    pub fn instance_id(&self) -> String {
-        let mut bstr = BString::new();
+    pub fn instance_id(&self) -> Result<String, Error> {
+        let mut bstr = BSTR::default();
         unsafe {
-            self.instance.GetInstanceId(&mut (*bstr));
+            if let Err(e) = self.instance.GetInstanceId(&mut bstr).ok() {
+                return Err(e);
+            }
         }
 
-        bstr.to_string()
+        Ok(bstr.to_string())
     }
 
-    pub fn installation_name(&self) -> String {
-        let mut bstr = BString::new();
+    pub fn install_date(&self) -> Result<DateTime<Utc>, Error> {
+        let mut ft = FILETIME::default();
+        let mut st = SYSTEMTIME::default();
         unsafe {
-            self.instance.GetInstallationName(&mut (*bstr));
+            if let Err(e) = self.instance.GetInstallDate(&mut ft).ok() {
+                return Err(e);
+            }
+
+            if let Err(_) = FileTimeToSystemTime(&ft, &mut st).ok() {
+                let err = HRESULT(GetLastError().0);
+                return Err(Error::new(err, "failed to convert install time to system time"));
+            }
         }
 
-        bstr.to_string()
+        let dt = Utc.ymd(
+            st.wYear.into(),
+            st.wMonth.into(),
+            st.wDay.into())
+        .and_hms_milli(
+            st.wHour.into(),
+            st.wMinute.into(),
+            st.wSecond.into(),
+            st.wMilliseconds.into());
+
+        Ok(dt)
     }
 
-    pub fn installation_path(&self) -> String {
-        let mut bstr = BString::new();
+    pub fn installation_name(&self) -> Result<String, Error> {
+        let mut bstr = BSTR::default();
         unsafe {
-            self.instance.GetInstallationPath(&mut (*bstr));
+            if let Err(e) = self.instance.GetInstallationName(&mut bstr).ok() {
+                return Err(e);
+            }
         }
 
-        bstr.to_string()
+        Ok(bstr.to_string())
     }
 
-    pub fn installation_version(&self) -> String {
-        let mut bstr = BString::new();
+    pub fn installation_path(&self) -> Result<String, Error> {
+        let mut bstr = BSTR::default();
         unsafe {
-            self.instance.GetInstallationVersion(&mut (*bstr));
+            if let Err(e) = self.instance.GetInstallationPath(&mut bstr).ok() {
+                return Err(e);
+            }
         }
 
-        bstr.to_string()
+        Ok(bstr.to_string())
     }
 
-    pub fn display_name(&self, lcid: u32) -> String {
-        let mut bstr = BString::new();
+    pub fn installation_version(&self) -> Result<String, Error> {
+        let mut bstr = BSTR::default();
         unsafe {
-            self.instance.GetDisplayName(lcid, &mut (*bstr));
+            if let Err(e) = self.instance.GetInstallationVersion(&mut bstr).ok() {
+                return Err(e);
+            }
         }
 
-        bstr.to_string()
+        Ok(bstr.to_string())
     }
 
-    pub fn description(&self, lcid: u32) -> String {
-        let mut bstr = BString::new();
+    pub fn display_name(&self, lcid: u32) -> Result<String, Error> {
+        let mut bstr = BSTR::default();
         unsafe {
-            self.instance.GetDescription(lcid, &mut (*bstr));
+            if let Err(e) = self.instance.GetDisplayName(lcid, &mut bstr).ok() {
+                return Err(e);
+            }
         }
 
-        bstr.to_string()
+        Ok(bstr.to_string())
+    }
+
+    pub fn description(&self, lcid: u32) -> Result<String, Error> {
+        let mut bstr = BSTR::default();
+        unsafe {
+            if let Err(e) = self.instance.GetDescription(lcid, &mut bstr).ok() {
+                return Err(e);
+            }
+        }
+
+        Ok(bstr.to_string())
     }
 }
