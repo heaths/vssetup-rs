@@ -2,7 +2,7 @@
 name = "vssetup"
 version = "0.1.0"
 authors = [
-    "Heath Stewart <heaths@outlook.com>"
+    "Heath Stewart <heaths@outlook.com>",
 ]
 description = """
 Enumerates Microsoft Visual Studio setup instances.
@@ -10,21 +10,25 @@ Enumerates Microsoft Visual Studio setup instances.
 license = "MIT"
 edition = "2018"
 repository = "https://github.com/heaths/vssetup-rs"
+exclude = [
+    ".github",
+    ".vscode",
+]
 categories = [
     "external-ffi-bindings",
-    "os::windows-apis"
+    "os::windows-apis",
 ]
 keywords = [
-    "visual-studio"
+    "visual-studio",
 ]
 
-[target.'cfg(windows)'.dependencies]
+[dependencies]
 bindings = { path = "bindings" }
 chrono = "0.4.19"
-com = "0.3.0"
+com = "0.4.0"
 windows = "0.10.0"
 
 [workspace]
 members = [
-    "bindings"
+    "bindings",
 ]
