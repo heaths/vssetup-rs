@@ -37,6 +37,18 @@ jobs:
       run: rustup target add ${{ matrix.target }}
     - name: test
       run: cargo test --all --target ${{ matrix.target }}
-    - name: format
-      if: matrix.rust == 'stable'
+
+  check:
+    runs-on: windows-latest
+    needs: test
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+    - uses: actions/checkout@v2
+    - name: update toolchain "${{ env.RUSTUP_TOOLCHAIN }}"
+      run: >
+        rustup update --no-self-update ${{ env.RUSTUP_TOOLCHAIN }}
+        && rustup default ${{ env.RUSTUP_TOOLCHAIN }}
+    - name: check formatting
+      if: ${{ matrix.rust == "stable" }}
       run: cargo fmt --all -- --check
