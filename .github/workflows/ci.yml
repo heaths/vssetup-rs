@@ -50,5 +50,5 @@ jobs:
         rustup update --no-self-update ${{ env.RUSTUP_TOOLCHAIN }}
         && rustup default ${{ env.RUSTUP_TOOLCHAIN }}
     - name: check formatting
-      if: ${{ matrix.rust == ;stable' }}
+      if: ${{ matrix.rust == 'stable' }}
       run: cargo fmt --all -- --check
