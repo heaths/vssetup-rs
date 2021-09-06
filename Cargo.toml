@@ -23,7 +23,7 @@ keywords = [
 ]
 
 [dependencies]
-bindings = { path = "bindings" }
+bindings = { path = "bindings", version = "0.1.0" }
 chrono = "0.4.19"
 com = "0.4.0"
 windows = "0.10.0"
