@@ -13,9 +13,7 @@ use windows::{initialize_sta, Result};
 fn main() -> Result<()> {
     initialize_sta()?;
 
-    let lcid = unsafe {
-        GetUserDefaultLCID()
-    };
+    let lcid = unsafe { GetUserDefaultLCID() };
 
     let config = SetupConfiguration::new();
     if let Some(e) = config.instances() {
@@ -26,7 +24,10 @@ fn main() -> Result<()> {
             }
 
             println!("instanceId: {}", instance.instance_id()?);
-            println!("installDate: {}", instance.install_date()?.with_timezone(&Local));
+            println!(
+                "installDate: {}",
+                instance.install_date()?.with_timezone(&Local)
+            );
             println!("installationName: {}", instance.installation_name()?);
             println!("installationPath: {}", instance.installation_path()?);
             println!("installationVersion: {}", instance.installation_version()?);

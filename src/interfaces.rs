@@ -4,18 +4,9 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use bindings::{
-    Windows::Win32::System::{
-        OleAutomation::BSTR,
-        WindowsProgramming::FILETIME,
-    },
-};
+use bindings::Windows::Win32::System::{OleAutomation::BSTR, WindowsProgramming::FILETIME};
 
-use com::{
-    interfaces,
-    interfaces::iunknown::IUnknown,
-    sys::IID,
-};
+use com::{interfaces, interfaces::iunknown::IUnknown, sys::IID};
 
 use windows::HRESULT;
 
@@ -25,7 +16,7 @@ pub const CLSID_SetupConfiguration: IID = IID {
     data1: 0x177f0c4a,
     data2: 0x1cd3,
     data3: 0x4de7,
-    data4: [ 0xa3, 0x2c, 0x71, 0xdb, 0xbb, 0x9f, 0xa3, 0x6d ],
+    data4: [0xa3, 0x2c, 0x71, 0xdb, 0xbb, 0x9f, 0xa3, 0x6d],
 };
 
 interfaces! {

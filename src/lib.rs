@@ -3,16 +3,10 @@
 
 extern crate com;
 
-use bindings::{
-    Windows::Win32::System::{
-        Diagnostics::Debug::GetLastError,
-        OleAutomation::BSTR,
-        WindowsProgramming::{
-            FILETIME,
-            SYSTEMTIME,
-            FileTimeToSystemTime,
-        },
-    },
+use bindings::Windows::Win32::System::{
+    Diagnostics::Debug::GetLastError,
+    OleAutomation::BSTR,
+    WindowsProgramming::{FileTimeToSystemTime, FILETIME, SYSTEMTIME},
 };
 
 use chrono::{DateTime, TimeZone, Utc};
@@ -21,7 +15,7 @@ use com::runtime::create_instance;
 mod interfaces;
 use interfaces::*;
 
-use windows::{Error, HRESULT, Result};
+use windows::{Error, Result, HRESULT};
 
 const CO_E_DLLNOTFOUND: i32 = -0x7ffb_fe08; // 0x8004_01F8
 const REGDB_E_CLASSNOTREG: i32 = -0x7ffb_feac; // 0x8004_0154
@@ -39,16 +33,12 @@ impl SetupConfiguration {
             Err(e) => panic!("Failed to load setup configuration: {}", e),
         };
 
-        SetupConfiguration {
-            config,
-        }
+        SetupConfiguration { config }
     }
 
     #[cfg(not(windows))]
     pub fn new() -> Self {
-        SetupConfiguration {
-            config: None,
-        }
+        SetupConfiguration { config: None }
     }
 
     pub fn instances(&self) -> Option<SetupInstances> {
@@ -56,34 +46,36 @@ impl SetupConfiguration {
             return None;
         }
 
-        if let Some(config2) = self.config.as_ref().unwrap()
-            .query_interface::<ISetupConfiguration2>() {
-                let mut e = None;
-                unsafe {
-                    if config2.EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances).is_err() {
-                        return None;
-                    }
-
-                    return Some(
-                        SetupInstances {
-                            e: e.unwrap(),
-                        }
-                    );
+        if let Some(config2) = self
+            .config
+            .as_ref()
+            .unwrap()
+            .query_interface::<ISetupConfiguration2>()
+        {
+            let mut e = None;
+            unsafe {
+                if config2
+                    .EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
+                    .is_err()
+                {
+                    return None;
                 }
+
+                return Some(SetupInstances { e: e.unwrap() });
+            }
         }
 
         let config = self.config.as_ref().unwrap();
         let mut e = None;
         unsafe {
-            if config.EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances).is_err() {
+            if config
+                .EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
+                .is_err()
+            {
                 return None;
             }
 
-            Some(
-                SetupInstances {
-                    e: e.unwrap(),
-                }
-            )
+            Some(SetupInstances { e: e.unwrap() })
         }
     }
 }
@@ -99,16 +91,21 @@ impl Iterator for SetupInstances {
         let mut instances: [Option<ISetupInstance>; 1] = [None];
         let mut fetched = 0;
         unsafe {
-            if self.e.Next(1, instances.as_mut_ptr() as *mut *mut ISetupInstance, &mut fetched).is_err() || fetched == 0 {
+            if self
+                .e
+                .Next(
+                    1,
+                    instances.as_mut_ptr() as *mut *mut ISetupInstance,
+                    &mut fetched,
+                )
+                .is_err()
+                || fetched == 0
+            {
                 return None;
             }
 
             let instance = instances[0].take().unwrap();
-            Some(
-                SetupInstance {
-                    instance,
-                }
-            )
+            Some(SetupInstance { instance })
         }
     }
 }
@@ -139,19 +136,21 @@ impl SetupInstance {
 
             if let Err(_) = FileTimeToSystemTime(&ft, &mut st).ok() {
                 let err = HRESULT(GetLastError().0);
-                return Err(Error::new(err, "failed to convert install time to system time"));
+                return Err(Error::new(
+                    err,
+                    "failed to convert install time to system time",
+                ));
             }
         }
 
-        let dt = Utc.ymd(
-            st.wYear.into(),
-            st.wMonth.into(),
-            st.wDay.into())
-        .and_hms_milli(
-            st.wHour.into(),
-            st.wMinute.into(),
-            st.wSecond.into(),
-            st.wMilliseconds.into());
+        let dt = Utc
+            .ymd(st.wYear.into(), st.wMonth.into(), st.wDay.into())
+            .and_hms_milli(
+                st.wHour.into(),
+                st.wMinute.into(),
+                st.wSecond.into(),
+                st.wMilliseconds.into(),
+            );
 
         Ok(dt)
     }
