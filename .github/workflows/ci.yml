@@ -38,5 +38,5 @@ jobs:
     - name: test
       run: cargo test --all --target ${{ matrix.target }}
     - name: format
-      if: matrix.rust == "stable"
+      if: matrix.rust == 'stable'
       run: cargo fmt --all -- --check
