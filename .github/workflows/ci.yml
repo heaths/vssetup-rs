@@ -37,3 +37,6 @@ jobs:
       run: rustup target add ${{ matrix.target }}
     - name: test
       run: cargo test --all --target ${{ matrix.target }}
+    - name: format
+      if: matrix.rust == "stable"
+      run: cargo fmt --all -- --check
