@@ -1,0 +1,29 @@
+name: release
+
+on:
+  release:
+    types:
+      - published
+
+env:
+  CARGO_BUILD_TARGET: x86_64-pc-windows-msvc
+  RUSTFLAGS: -Dwarnings
+  RUSTUP_TOOLCHAIN: stable
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: update toolchain "${{ env.RUSTUP_TOOLCHAIN }}"
+      run: >
+        rustup update --no-self-update ${{ env.RUSTUP_TOOLCHAIN }}
+        && rustup default ${{ env.RUSTUP_TOOLCHAIN }}
+    - name: install target "${{ env.CARGO_BUILD_TARGET }}"
+      run: rustup target add ${{ env.CARGO_BUILD_TARGET }}
+    - name: test
+      run: cargo test --all
+    - name: publish
+      run: cargo publish
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
