@@ -6,7 +6,12 @@
 extern crate vssetup;
 use vssetup::SetupConfiguration;
 
+mod bindings {
+    windows::include_bindings!();
+}
+
 use bindings::Windows::Win32::Globalization::GetUserDefaultLCID;
+
 use chrono::Local;
 use windows::{initialize_sta, Result};
 

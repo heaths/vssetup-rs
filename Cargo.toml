@@ -23,12 +23,9 @@ keywords = [
 ]
 
 [dependencies]
-bindings = { path = "bindings", version = "0.1.0" }
 chrono = "0.4.19"
-com = "0.4.0"
+com = "0.3.0"
 windows = "0.10.0"
 
-[workspace]
-members = [
-    "bindings",
-]
+[build-dependencies]
+windows = "0.10.0"

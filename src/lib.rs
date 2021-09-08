@@ -3,6 +3,10 @@
 
 extern crate com;
 
+mod bindings {
+    windows::include_bindings!();
+}
+
 use bindings::Windows::Win32::System::{
     Diagnostics::Debug::GetLastError,
     OleAutomation::BSTR,
