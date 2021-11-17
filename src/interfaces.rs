@@ -4,11 +4,12 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use bindings::Windows::Win32::System::{OleAutomation::BSTR, WindowsProgramming::FILETIME};
-
 use com::{interfaces, interfaces::iunknown::IUnknown, sys::IID};
 
-use windows::HRESULT;
+use windows::{
+    core::HRESULT,
+    Win32::Foundation::{BSTR, FILETIME},
+};
 
 // From https://www.nuget.org/packages/Microsoft.VisualStudio.Setup.Configuration.Native
 

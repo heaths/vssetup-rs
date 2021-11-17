@@ -2,20 +2,20 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 extern crate com;
+use com::runtime::create_instance;
 
-use bindings::Windows::Win32::System::{
-    Diagnostics::Debug::GetLastError,
-    OleAutomation::BSTR,
-    WindowsProgramming::{FileTimeToSystemTime, FILETIME, SYSTEMTIME},
+use windows::{
+    core::{Error, Result},
+    Win32::{
+        Foundation::{BSTR, FILETIME, SYSTEMTIME},
+        System::Time::FileTimeToSystemTime,
+    },
 };
 
 use chrono::{DateTime, TimeZone, Utc};
-use com::runtime::create_instance;
 
 mod interfaces;
 use interfaces::*;
-
-use windows::{Error, Result, HRESULT};
 
 const CO_E_DLLNOTFOUND: i32 = -0x7ffb_fe08; // 0x8004_01F8
 const REGDB_E_CLASSNOTREG: i32 = -0x7ffb_feac; // 0x8004_0154
@@ -135,11 +135,7 @@ impl SetupInstance {
             }
 
             if let Err(_) = FileTimeToSystemTime(&ft, &mut st).ok() {
-                let err = HRESULT(GetLastError().0);
-                return Err(Error::new(
-                    err,
-                    "failed to convert install time to system time",
-                ));
+                return Err(Error::from_win32());
             }
         }
 
