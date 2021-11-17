@@ -6,17 +6,18 @@
 extern crate vssetup;
 use vssetup::SetupConfiguration;
 
-mod bindings {
-    windows::include_bindings!();
-}
-
-use bindings::Windows::Win32::Globalization::GetUserDefaultLCID;
+use windows::{
+    core::Result,
+    Win32::Globalization::GetUserDefaultLCID,
+    Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED},
+};
 
 use chrono::Local;
-use windows::{initialize_sta, Result};
 
 fn main() -> Result<()> {
-    initialize_sta()?;
+    unsafe {
+        CoInitializeEx(std::ptr::null_mut(), COINIT_APARTMENTTHREADED)?;
+    }
 
     let lcid = unsafe { GetUserDefaultLCID() };
 
