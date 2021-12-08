@@ -41,42 +41,35 @@ impl SetupConfiguration {
         SetupConfiguration { config: None }
     }
 
-    pub fn instances(&self) -> Option<SetupInstances> {
+    pub fn instances(&self, all: bool) -> Option<SetupInstances> {
         if self.config.is_none() {
             return None;
         }
 
-        if let Some(config2) = self
-            .config
-            .as_ref()
-            .unwrap()
-            .query_interface::<ISetupConfiguration2>()
-        {
-            let mut e = None;
-            unsafe {
-                if config2
-                    .EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
-                    .is_err()
-                {
-                    return None;
-                }
-
-                return Some(SetupInstances { e: e.unwrap() });
-            }
-        }
-
         let config = self.config.as_ref().unwrap();
-        let mut e = None;
-        unsafe {
-            if config
-                .EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
-                .is_err()
-            {
-                return None;
-            }
 
-            Some(SetupInstances { e: e.unwrap() })
+        let hr;
+        let mut e = None;
+        if all {
+            let config2 = match config.query_interface::<ISetupConfiguration2>() {
+                Some(c) => c,
+                None => return None,
+            };
+
+            unsafe {
+                hr = config2.EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances);
+            }
+        } else {
+            unsafe {
+                hr = config.EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances);
+            }
         }
+
+        if hr.is_err() {
+            return None;
+        }
+
+        return Some(SetupInstances { e: e.unwrap() });
     }
 }
 

@@ -7,12 +7,10 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/target/debug/vswhere.exe",
-            "args": [],
+            "args": ["--all"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "symbolSearchPath": "C:\\src\\.symbols",
-            "environment": [],
-            "externalConsole": false
+            "environment": []
         }
     ]
 }

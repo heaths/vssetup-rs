@@ -49,7 +49,7 @@ interfaces! {
     }
 
     #[uuid("26AAB78C-4A60-49D6-AF3B-3C35BC93365D")]
-    pub unsafe interface ISetupConfiguration2: IUnknown {
+    pub unsafe interface ISetupConfiguration2: ISetupConfiguration {
         pub fn EnumAllInstances(&self, ppEnumInstances: *mut *mut IEnumSetupInstances) -> HRESULT;
     }
 }
