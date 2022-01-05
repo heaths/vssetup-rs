@@ -4,15 +4,15 @@
 extern crate com;
 use com::runtime::create_instance;
 
-use windows::{
-    core::{Error, Result},
-    Win32::{
-        Foundation::{BSTR, FILETIME, SYSTEMTIME},
-        System::Time::FileTimeToSystemTime,
-    },
+use windows::Win32::{
+    Foundation::{BSTR, FILETIME, SYSTEMTIME},
+    System::Time::FileTimeToSystemTime,
 };
 
 use chrono::{DateTime, TimeZone, Utc};
+
+mod errors;
+pub use errors::*;
 
 mod interfaces;
 use interfaces::*;
@@ -41,42 +41,35 @@ impl SetupConfiguration {
         SetupConfiguration { config: None }
     }
 
-    pub fn instances(&self) -> Option<SetupInstances> {
+    pub fn instances(&self, all: bool) -> Option<SetupInstances> {
         if self.config.is_none() {
             return None;
         }
 
-        if let Some(config2) = self
-            .config
-            .as_ref()
-            .unwrap()
-            .query_interface::<ISetupConfiguration2>()
-        {
-            let mut e = None;
-            unsafe {
-                if config2
-                    .EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
-                    .is_err()
-                {
-                    return None;
-                }
-
-                return Some(SetupInstances { e: e.unwrap() });
-            }
-        }
-
         let config = self.config.as_ref().unwrap();
-        let mut e = None;
-        unsafe {
-            if config
-                .EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
-                .is_err()
-            {
-                return None;
-            }
 
-            Some(SetupInstances { e: e.unwrap() })
+        let hr;
+        let mut e = None;
+        if all {
+            let config2 = match config.query_interface::<ISetupConfiguration2>() {
+                Some(c) => c,
+                None => return None,
+            };
+
+            unsafe {
+                hr = config2.EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances);
+            }
+        } else {
+            unsafe {
+                hr = config.EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances);
+            }
         }
+
+        if hr.is_err() {
+            return None;
+        }
+
+        return Some(SetupInstances { e: e.unwrap() });
     }
 }
 
@@ -118,9 +111,7 @@ impl SetupInstance {
     pub fn instance_id(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
-            if let Err(e) = self.instance.GetInstanceId(&mut bstr).ok() {
-                return Err(e);
-            }
+            self.instance.GetInstanceId(&mut bstr).ok()?;
         }
 
         Ok(bstr.to_string())
@@ -130,13 +121,8 @@ impl SetupInstance {
         let mut ft = FILETIME::default();
         let mut st = SYSTEMTIME::default();
         unsafe {
-            if let Err(e) = self.instance.GetInstallDate(&mut ft).ok() {
-                return Err(e);
-            }
-
-            if let Err(_) = FileTimeToSystemTime(&ft, &mut st).ok() {
-                return Err(Error::from_win32());
-            }
+            self.instance.GetInstallDate(&mut ft).ok()?;
+            FileTimeToSystemTime(&ft, &mut st).ok()?;
         }
 
         let dt = Utc
@@ -154,9 +140,7 @@ impl SetupInstance {
     pub fn installation_name(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
-            if let Err(e) = self.instance.GetInstallationName(&mut bstr).ok() {
-                return Err(e);
-            }
+            self.instance.GetInstallationName(&mut bstr).ok()?;
         }
 
         Ok(bstr.to_string())
@@ -165,9 +149,7 @@ impl SetupInstance {
     pub fn installation_path(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
-            if let Err(e) = self.instance.GetInstallationPath(&mut bstr).ok() {
-                return Err(e);
-            }
+            self.instance.GetInstallationPath(&mut bstr).ok()?;
         }
 
         Ok(bstr.to_string())
@@ -176,9 +158,7 @@ impl SetupInstance {
     pub fn installation_version(&self) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
-            if let Err(e) = self.instance.GetInstallationVersion(&mut bstr).ok() {
-                return Err(e);
-            }
+            self.instance.GetInstallationVersion(&mut bstr).ok()?;
         }
 
         Ok(bstr.to_string())
@@ -187,9 +167,7 @@ impl SetupInstance {
     pub fn display_name(&self, lcid: u32) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
-            if let Err(e) = self.instance.GetDisplayName(lcid, &mut bstr).ok() {
-                return Err(e);
-            }
+            self.instance.GetDisplayName(lcid, &mut bstr).ok()?;
         }
 
         Ok(bstr.to_string())
@@ -198,9 +176,7 @@ impl SetupInstance {
     pub fn description(&self, lcid: u32) -> Result<String> {
         let mut bstr = BSTR::default();
         unsafe {
-            if let Err(e) = self.instance.GetDescription(lcid, &mut bstr).ok() {
-                return Err(e);
-            }
+            self.instance.GetDescription(lcid, &mut bstr).ok()?;
         }
 
         Ok(bstr.to_string())

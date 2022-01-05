@@ -23,11 +23,12 @@ keywords = [
 ]
 
 [dependencies]
-chrono = "0.4.19"
-com = "0.6.0"
+chrono = "^0.4.19"
+clap = "^2.33.3"
+com = "^0.6.0"
 
 [dependencies.windows]
-version = "0.27.0"
+version = "^0.27.0"
 features = [
     "std",
     "Win32_Foundation",
