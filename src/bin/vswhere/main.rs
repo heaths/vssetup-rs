@@ -7,19 +7,16 @@ extern crate clap;
 use clap::{crate_version, App, Arg, ArgMatches};
 
 extern crate vssetup;
-use vssetup::SetupConfiguration;
+use vssetup::{Result, SetupConfiguration};
 
 extern crate com;
 use com::runtime::{ApartmentRuntime, ApartmentType};
-
-use windows::core::{Error, Result, HRESULT};
 
 mod formatter;
 
 fn main() -> Result<()> {
     let opts = parse();
-    let _apartment = ApartmentRuntime::new(ApartmentType::SingleThreaded)
-        .map_err(|e| Error::fast_error(HRESULT(e as u32)));
+    let _apartment = ApartmentRuntime::new(ApartmentType::SingleThreaded)?;
 
     let config = SetupConfiguration::new();
     if let Some(e) = config.instances(opts.all) {

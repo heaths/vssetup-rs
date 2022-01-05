@@ -4,10 +4,10 @@
 #![cfg(windows)]
 
 extern crate vssetup;
-use vssetup::SetupInstances;
+use vssetup::{Result, SetupInstances};
 
 use chrono::Local;
-use windows::{core::Result, Win32::Globalization::GetUserDefaultLCID};
+use windows::Win32::Globalization::GetUserDefaultLCID;
 
 pub fn print_instances(instances: SetupInstances) -> Result<()> {
     let lcid = unsafe { GetUserDefaultLCID() };
