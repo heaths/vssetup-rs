@@ -7,19 +7,15 @@ extern crate clap;
 use clap::{crate_version, App, Arg, ArgMatches};
 
 extern crate vssetup;
-use vssetup::{Result, SetupConfiguration};
-
-extern crate com;
-use com::runtime::{ApartmentRuntime, ApartmentType};
+use vssetup::{ApartmentType, Result, SetupConfiguration};
 
 mod formatter;
 
 fn main() -> Result<()> {
     let opts = parse();
-    let _apartment = ApartmentRuntime::new(ApartmentType::SingleThreaded)?;
 
-    let config = SetupConfiguration::new();
-    if let Some(e) = config.instances(opts.all) {
+    let config = SetupConfiguration::with_apartment(ApartmentType::SingleThreaded)?;
+    if let Some(e) = config.instances(opts.all)? {
         formatter::print_instances(e)?;
     }
 
