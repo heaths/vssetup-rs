@@ -15,9 +15,7 @@ fn main() -> Result<()> {
     let opts = parse();
 
     let config = SetupConfiguration::with_apartment(ApartmentType::SingleThreaded)?;
-    if let Some(e) = config.instances(opts.all)? {
-        formatter::print_instances(e)?;
-    }
+    formatter::print_instances(config.instances(opts.all)?)?;
 
     Ok(())
 }

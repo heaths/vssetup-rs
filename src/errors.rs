@@ -7,7 +7,9 @@ use windows::core;
 
 pub type Result<T> = std::result::Result<T, SetupConfigurationError>;
 
-const E_NOTIMPL: u32 = 0x8000_4001;
+pub(crate) const CO_E_DLLNOTFOUND: u32 = 0x8004_01F8;
+pub(crate) const E_NOTIMPL: u32 = 0x8000_4001;
+pub(crate) const REGDB_E_CLASSNOTREG: u32 = 0x8004_0154;
 
 #[derive(Debug, PartialEq)]
 pub enum SetupConfigurationError {

@@ -6,7 +6,8 @@ pub use com::runtime::ApartmentType;
 use com::runtime::{create_instance, ApartmentRuntime};
 
 mod errors;
-pub use errors::*;
+pub use errors::{Result, SetupConfigurationError};
+use errors::{CO_E_DLLNOTFOUND, REGDB_E_CLASSNOTREG};
 
 mod instance;
 pub use instance::*;
@@ -18,9 +19,6 @@ use interfaces::{
 };
 
 use std::mem;
-
-const CO_E_DLLNOTFOUND: i32 = -0x7ffb_fe08; // 0x8004_01F8
-const REGDB_E_CLASSNOTREG: i32 = -0x7ffb_feac; // 0x8004_0154
 
 pub struct SetupConfiguration {
     apartment: Option<ApartmentRuntime>,
@@ -50,7 +48,7 @@ impl SetupConfiguration {
 
     fn create_instance() -> Result<ISetupConfiguration> {
         let config = create_instance::<ISetupConfiguration>(&CLSID_SetupConfiguration).map_err(
-            |e| match e {
+            |e| match e as u32 {
                 CO_E_DLLNOTFOUND | REGDB_E_CLASSNOTREG => SetupConfigurationError::NotInstalled,
                 _ => e.into(),
             },
@@ -63,14 +61,11 @@ impl SetupConfiguration {
 #[cfg(not(windows))]
 impl SetupConfiguration {
     pub fn new() -> Result<Self> {
-        Ok(SetupConfiguration {
-            apartment: None,
-            config: None,
-        })
+        Err(SetupConfigurationError::NotImplemented)
     }
 
     pub fn with_apartment() -> Result<Self> {
-        SetupConfiguration::new()
+        Err(SetupConfigurationError::NotImplemented)
     }
 }
 
@@ -90,9 +85,9 @@ impl Drop for SetupConfiguration {
 }
 
 impl SetupConfiguration {
-    pub fn instances(&self, all: bool) -> Result<Option<SetupInstances>> {
+    pub fn instances(&self, all: bool) -> Result<SetupInstances> {
         if self.config.is_none() {
-            return Ok(None);
+            return Err(SetupConfigurationError::NotImplemented);
         }
 
         let config = self.config.as_ref().unwrap();
@@ -115,7 +110,7 @@ impl SetupConfiguration {
             }
         }
 
-        Ok(Some(SetupInstances { e: e.unwrap() }))
+        Ok(SetupInstances { e: e.unwrap() })
     }
 }
 
