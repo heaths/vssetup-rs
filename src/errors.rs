@@ -7,9 +7,14 @@ use windows::core;
 
 pub type Result<T> = std::result::Result<T, SetupConfigurationError>;
 
-#[derive(Debug)]
+pub(crate) const CO_E_DLLNOTFOUND: u32 = 0x8004_01F8;
+pub(crate) const E_NOTIMPL: u32 = 0x8000_4001;
+pub(crate) const REGDB_E_CLASSNOTREG: u32 = 0x8004_0154;
+
+#[derive(Debug, PartialEq)]
 pub enum SetupConfigurationError {
     NotInstalled,
+    NotImplemented,
     COM { err: core::Error },
 }
 
@@ -18,6 +23,9 @@ impl fmt::Display for SetupConfigurationError {
         match &*self {
             SetupConfigurationError::NotInstalled => {
                 write!(f, "setup configuration module is not installed")
+            }
+            SetupConfigurationError::NotImplemented => {
+                write!(f, "not implemented")
             }
             SetupConfigurationError::COM { err } => err.fmt(f),
         }
@@ -28,6 +36,7 @@ impl error::Error for SetupConfigurationError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             SetupConfigurationError::NotInstalled => None,
+            SetupConfigurationError::NotImplemented => None,
             SetupConfigurationError::COM { ref err } => Some(err),
         }
     }
@@ -35,23 +44,32 @@ impl error::Error for SetupConfigurationError {
 
 impl From<core::Error> for SetupConfigurationError {
     fn from(err: core::Error) -> Self {
-        SetupConfigurationError::COM { err }
+        match err.code().0 {
+            E_NOTIMPL => SetupConfigurationError::NotImplemented,
+            _ => SetupConfigurationError::COM { err },
+        }
     }
 }
 
 impl From<com::sys::HRESULT> for SetupConfigurationError {
     fn from(hr: com::sys::HRESULT) -> Self {
         let _hr = core::HRESULT(hr as u32);
-        SetupConfigurationError::COM {
-            err: core::Error::from(_hr),
+        match _hr.0 {
+            E_NOTIMPL => SetupConfigurationError::NotImplemented,
+            _ => SetupConfigurationError::COM {
+                err: core::Error::from(_hr),
+            },
         }
     }
 }
 
 impl From<core::HRESULT> for SetupConfigurationError {
     fn from(hr: core::HRESULT) -> Self {
-        SetupConfigurationError::COM {
-            err: core::Error::from(hr),
+        match hr.0 {
+            E_NOTIMPL => SetupConfigurationError::NotImplemented,
+            _ => SetupConfigurationError::COM {
+                err: core::Error::from(hr),
+            },
         }
     }
 }
@@ -69,9 +87,38 @@ mod tests {
     }
 
     #[test]
+    fn notimplemented_fmt() {
+        assert_eq!(
+            "not implemented",
+            format!("{}", SetupConfigurationError::NotImplemented)
+        )
+    }
+
+    #[test]
     #[cfg(windows)]
     fn com_fmt() {
         let err: SetupConfigurationError = core::HRESULT(0x80070490).into();
         assert_ne!(0, format!("{}", err).len())
+    }
+
+    #[test]
+    fn from_error_notimplemented() {
+        let hr = core::HRESULT(E_NOTIMPL);
+        let err: SetupConfigurationError = core::Error::from(hr).into();
+        assert_eq!(SetupConfigurationError::NotImplemented, err)
+    }
+
+    #[test]
+    fn from_com_sys_hresult_notimplemented() {
+        let hr: com::sys::HRESULT = E_NOTIMPL as i32;
+        let err: SetupConfigurationError = hr.into();
+        assert_eq!(SetupConfigurationError::NotImplemented, err)
+    }
+
+    #[test]
+    fn from_core_hresult_notimplemented() {
+        let hr = core::HRESULT(E_NOTIMPL);
+        let err: SetupConfigurationError = hr.into();
+        assert_eq!(SetupConfigurationError::NotImplemented, err)
     }
 }

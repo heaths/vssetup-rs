@@ -2,74 +2,115 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 extern crate com;
-use com::runtime::create_instance;
-
-use windows::Win32::{
-    Foundation::{BSTR, FILETIME, SYSTEMTIME},
-    System::Time::FileTimeToSystemTime,
-};
-
-use chrono::{DateTime, TimeZone, Utc};
+pub use com::runtime::ApartmentType;
+use com::runtime::{create_instance, ApartmentRuntime};
 
 mod errors;
-pub use errors::*;
+pub use errors::{Result, SetupConfigurationError};
+use errors::{CO_E_DLLNOTFOUND, REGDB_E_CLASSNOTREG};
+
+mod instance;
+pub use instance::*;
 
 mod interfaces;
-use interfaces::*;
+use interfaces::{
+    CLSID_SetupConfiguration, IEnumSetupInstances, ISetupConfiguration, ISetupConfiguration2,
+    ISetupInstance,
+};
 
-const CO_E_DLLNOTFOUND: i32 = -0x7ffb_fe08; // 0x8004_01F8
-const REGDB_E_CLASSNOTREG: i32 = -0x7ffb_feac; // 0x8004_0154
+use std::mem;
 
 pub struct SetupConfiguration {
+    apartment: Option<ApartmentRuntime>,
     config: Option<ISetupConfiguration>,
 }
 
+#[cfg(windows)]
 impl SetupConfiguration {
-    #[cfg(windows)]
-    pub fn new() -> Self {
-        let config = match create_instance::<ISetupConfiguration>(&CLSID_SetupConfiguration) {
-            Ok(c) => Some(c),
-            Err(e) if e == CO_E_DLLNOTFOUND || e == REGDB_E_CLASSNOTREG => None,
-            Err(e) => panic!("Failed to load setup configuration: {}", e),
-        };
+    pub fn new() -> Result<Self> {
+        let config = Self::create_instance()?;
 
-        SetupConfiguration { config }
+        Ok(SetupConfiguration {
+            apartment: None,
+            config: Some(config),
+        })
     }
 
-    #[cfg(not(windows))]
-    pub fn new() -> Self {
-        SetupConfiguration { config: None }
+    pub fn with_apartment(apartment_type: ApartmentType) -> Result<Self> {
+        let apartment = ApartmentRuntime::new(apartment_type)?;
+        let config = Self::create_instance()?;
+
+        Ok(SetupConfiguration {
+            apartment: Some(apartment),
+            config: Some(config),
+        })
     }
 
-    pub fn instances(&self, all: bool) -> Option<SetupInstances> {
+    fn create_instance() -> Result<ISetupConfiguration> {
+        let config = create_instance::<ISetupConfiguration>(&CLSID_SetupConfiguration).map_err(
+            |e| match e as u32 {
+                CO_E_DLLNOTFOUND | REGDB_E_CLASSNOTREG => SetupConfigurationError::NotInstalled,
+                _ => e.into(),
+            },
+        )?;
+
+        Ok(config)
+    }
+}
+
+#[cfg(not(windows))]
+impl SetupConfiguration {
+    pub fn new() -> Result<Self> {
+        Err(SetupConfigurationError::NotImplemented)
+    }
+
+    pub fn with_apartment() -> Result<Self> {
+        Err(SetupConfigurationError::NotImplemented)
+    }
+}
+
+impl Drop for SetupConfiguration {
+    fn drop(&mut self) {
+        // Make sure the COM object is released before the apartment freed.
+        if let Some(config) = &self.config {
+            mem::drop(config);
+            self.config = None;
+        }
+
+        if let Some(apartment) = &self.apartment {
+            mem::drop(apartment);
+            self.apartment = None;
+        }
+    }
+}
+
+impl SetupConfiguration {
+    pub fn instances(&self, all: bool) -> Result<SetupInstances> {
         if self.config.is_none() {
-            return None;
+            return Err(SetupConfigurationError::NotImplemented);
         }
 
         let config = self.config.as_ref().unwrap();
-
-        let hr;
         let mut e = None;
         if all {
-            let config2 = match config.query_interface::<ISetupConfiguration2>() {
-                Some(c) => c,
-                None => return None,
-            };
+            let config2 = config
+                .query_interface::<ISetupConfiguration2>()
+                .ok_or(SetupConfigurationError::NotImplemented)?;
 
             unsafe {
-                hr = config2.EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances);
+                config2
+                    .EnumAllInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
+                    .ok()?;
             }
         } else {
             unsafe {
-                hr = config.EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances);
+                config
+                    .EnumInstances(&mut e as *mut _ as *mut *mut IEnumSetupInstances)
+                    .ok()?;
             }
         }
 
-        if hr.is_err() {
-            return None;
-        }
-
-        return Some(SetupInstances { e: e.unwrap() });
+        Ok(SetupInstances { e: e.unwrap() })
     }
 }
 
@@ -80,6 +121,7 @@ pub struct SetupInstances {
 impl Iterator for SetupInstances {
     type Item = SetupInstance;
 
+    #[cfg(windows)]
     fn next(&mut self) -> Option<SetupInstance> {
         let mut instances: [Option<ISetupInstance>; 1] = [None];
         let mut fetched = 0;
@@ -101,84 +143,9 @@ impl Iterator for SetupInstances {
             Some(SetupInstance { instance })
         }
     }
-}
 
-pub struct SetupInstance {
-    instance: ISetupInstance,
-}
-
-impl SetupInstance {
-    pub fn instance_id(&self) -> Result<String> {
-        let mut bstr = BSTR::default();
-        unsafe {
-            self.instance.GetInstanceId(&mut bstr).ok()?;
-        }
-
-        Ok(bstr.to_string())
-    }
-
-    pub fn install_date(&self) -> Result<DateTime<Utc>> {
-        let mut ft = FILETIME::default();
-        let mut st = SYSTEMTIME::default();
-        unsafe {
-            self.instance.GetInstallDate(&mut ft).ok()?;
-            FileTimeToSystemTime(&ft, &mut st).ok()?;
-        }
-
-        let dt = Utc
-            .ymd(st.wYear.into(), st.wMonth.into(), st.wDay.into())
-            .and_hms_milli(
-                st.wHour.into(),
-                st.wMinute.into(),
-                st.wSecond.into(),
-                st.wMilliseconds.into(),
-            );
-
-        Ok(dt)
-    }
-
-    pub fn installation_name(&self) -> Result<String> {
-        let mut bstr = BSTR::default();
-        unsafe {
-            self.instance.GetInstallationName(&mut bstr).ok()?;
-        }
-
-        Ok(bstr.to_string())
-    }
-
-    pub fn installation_path(&self) -> Result<String> {
-        let mut bstr = BSTR::default();
-        unsafe {
-            self.instance.GetInstallationPath(&mut bstr).ok()?;
-        }
-
-        Ok(bstr.to_string())
-    }
-
-    pub fn installation_version(&self) -> Result<String> {
-        let mut bstr = BSTR::default();
-        unsafe {
-            self.instance.GetInstallationVersion(&mut bstr).ok()?;
-        }
-
-        Ok(bstr.to_string())
-    }
-
-    pub fn display_name(&self, lcid: u32) -> Result<String> {
-        let mut bstr = BSTR::default();
-        unsafe {
-            self.instance.GetDisplayName(lcid, &mut bstr).ok()?;
-        }
-
-        Ok(bstr.to_string())
-    }
-
-    pub fn description(&self, lcid: u32) -> Result<String> {
-        let mut bstr = BSTR::default();
-        unsafe {
-            self.instance.GetDescription(lcid, &mut bstr).ok()?;
-        }
-
-        Ok(bstr.to_string())
+    #[cfg(not(windows))]
+    fn next(&mut self) -> Option<SetupInstance> {
+        None
     }
 }
